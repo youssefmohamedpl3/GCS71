@@ -10,7 +10,8 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(16)
+# Use a static secret key from environment variable for session persistence
+app.secret_key = os.environ.get('SECRET_KEY', 'my-static-secret-key-12345')  # Set in Koyeb env vars
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 app.config['SESSION_PERMANENT'] = True
 
@@ -30,10 +31,10 @@ class User(UserMixin):
 # Users
 users = {
     'admin': User('1', 'Youssef Mohamed Ahmed', 'c29FLBV593', 'all'),
-    'YMA' : User('3', 'Youssef Mohamed Ahmed', 'c29FLBV593', 'all'),
-    'MMM': User('2', 'Mahmoud Mohamed Mahmoud', 'R9T5B2L8', [3, 2,6,5]),
-    'SWA' : User("4", 'Sandy Wassim Abdullah' , '3K7M4N1Q' , [1,4]),
-    'KHZ' : User("4", 'Karam Hazem Zaki' , 'W6X2Y9Z4' , [3, 2,6,5])
+    'YMA': User('3', 'Youssef Mohamed Ahmed', 'c29FLBV593', 'all'),
+    'MMM': User('2', 'Mahmoud Mohamed Mahmoud', 'R9T5B2L8', [3, 2, 6, 5]),
+    'SWA': User("4", 'Sandy Wassim Abdullah', '3K7M4N1Q', [1, 4]),
+    'KHZ': User("4", 'Karam Hazem Zaki', 'W6X2Y9Z4', [3, 2, 6, 5])
 }
 
 # Student data
@@ -43,7 +44,7 @@ students = [
     {'id': 5, 'name': 'Malek Hany Abdelal', 'phone': '01122206125', 'address': 'Faisal Mariouteya', 'instagram': 'https://www.instagram.com/itz_____malek/', 'facebook': 'https://www.facebook.com/profile.php?id=100055797635744', 'dob': '2011-10-11', 'car': ''},
     {'id': 4, 'name': 'Layan Wael Mohamed', 'phone': '01554918118', 'address': 'Faisal Mariouteya', 'instagram': '', 'facebook': 'https://www.facebook.com/lian.wael.14', 'dob': '2011-08-01', 'car': ''},
     {'id': 1, 'name': 'Sandy Wassim Abdullah', 'phone': '01030064939', 'address': 'Sheikh Zayed, 8th district', 'instagram': 'https://www.instagram.com/sandy_wasiem12/', 'facebook': 'https://www.facebook.com/profile.php?id=61550241764159&mibextid=ZbWKwL', 'dob': '2011-07-01', 'car': ''},
-    {'id': 6, 'name': 'Youssef Mohamed Ahmed Sayed Ali', 'phone': '01155201219', 'address': 'Sheikh Zayed, 9th district, 1st Neighbourhoud, villa 103, appartment 7', 'instagram': 'https://www.instagram.com/joe__is__here/','facebook' : 'https://www.facebook.com/profile.php?id=61553419564295', 'dob': '2011-05-28', 'car': 'Mitushibi Eclipse Cross 2024'}
+    {'id': 6, 'name': 'Youssef Mohamed Ahmed Sayed Ali', 'phone': '01155201219', 'address': 'Sheikh Zayed, 9th district, 1st Neighbourhoud, villa 103, appartment 7', 'instagram': 'https://www.instagram.com/joe__is__here/', 'facebook': 'https://www.facebook.com/profile.php?id=61553419564295', 'dob': '2011-05-28', 'car': 'Mitushibi Eclipse Cross 2024'}
 ]
 
 # Store user activity globally
@@ -59,7 +60,7 @@ def load_user(user_id):
 # Token generation and validation
 def generate_token(student_id):
     token = secrets.token_urlsafe(16)
-    session[f'token_{student_id}'] = {'token': token, 'expires': (datetime.now() + timedelta(minutes=5)).timestamp()}
+    session[f'token_{student_id}'] = {'token': token, 'expires': (datetime.nowcriptions + timedelta(minutes=5)).timestamp()}
     return token
 
 def validate_token(student_id, token):
@@ -88,12 +89,15 @@ def before_request():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    logger.info(f"Login request: {request.method} from {request.remote_addr}")
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        username = request.form.get('username')
+        password = request.form.get('password')
+        logger.info(f"Login attempt: username={username}")
         user = users.get(username)
         if user and user.password == password:
             login_user(user)
+            logger.info(f"User {username} authenticated: {current_user.is_authenticated}")
             session['accessed_students'] = []
             session['last_activity'] = datetime.now().timestamp()
             user_activity[user.username] = {
@@ -101,9 +105,13 @@ def login():
                 'logout_time': None,
                 'students_checked': []
             }
-            logger.info(f"User '{user.username}' logged in from IP: {request.remote_addr}")
+            logger.info(f"Redirecting to {url_for('index')}")
             return redirect(url_for('index'))
-        flash('Invalid username or password')
+        else:
+            flash('Invalid username or password')
+            logger.info(f"Login failed for {username}: Invalid credentials")
+    else:
+        logger.info("Rendering login page for GET request")
     return render_template('login.html')
 
 @app.route('/logout')
@@ -119,6 +127,7 @@ def logout():
 @app.route('/')
 @login_required
 def index():
+    logger.info(f"Index accessed by {current_user.username}, authenticated: {current_user.is_authenticated}")
     if current_user.username == 'Youssef Mohamed Ahmed':
         return render_template('admin_dashboard.html', users=users, user_activity=user_activity)
     else:
@@ -164,6 +173,12 @@ def clear_activity():
     flash('All user activity data has been cleared.')
     return redirect(url_for('index'))
 
+# Temporary test route to debug authentication
+@app.route('/test')
+@login_required
+def test():
+    return f"Logged in as {current_user.username}, Authenticated: {current_user.is_authenticated}"
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=True)
