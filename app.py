@@ -3,6 +3,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 import secrets
 from datetime import datetime, timedelta 
 import logging
+import os
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
