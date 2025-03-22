@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Cyber Control</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> 
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Dashboard</h1>
+        <h2>User Activity</h2>
+        <div class="student-list">
+            {% for username, activity in user_activity.items() %}
+                <div class="student-card">
+                    <h3>{{ username }}</h3>
+                    <p>Login: {{ activity.login_time }}</p>
+                    <p>Logout: {{ activity.logout_time or 'Active' }}</p>
+                    <p>Students Checked:</p>
+                    {% for check in activity.students_checked %}
+                        <p>{{ check.name }} at {{ check.time }}</p>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+        <form method="POST" action="/clear_activity">
+            <button type="submit">Clear Activity</button>
+        </form>
+        <a href="/logout" class="floating-back-btn">Logout</a>
+    </div>
+</body>
+</html>

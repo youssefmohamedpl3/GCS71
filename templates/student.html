@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ student.name }} - Cyber Profile</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="detail-container">
+        <div class="profile-card">
+            <div class="info">
+                <h1>{{ student.name }}</h1>
+                <p>Phone: {{ student.phone }}</p>
+                <p>Address: {{ student.address }}</p>
+                <p>Instagram: <a href="{{ student.instagram }}">{{ student.instagram }}</a></p>
+                <p>Facebook: <a href="{{ student.facebook }}">{{ student.facebook }}</a></p>
+                <p>Date of Birth: {{ student.dob }}</p>
+                <p>Car: {{ student.car or 'N/A' }}</p>
+            </div>
+        </div>
+        <a href="/" class="floating-back-btn">Back to List</a>
+    </div>
+</body>
+</html>
